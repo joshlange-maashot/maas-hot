@@ -1,3 +1,5 @@
+@Library('ace@master') _
+
 def tagMatchRules = [
   [
     "meTypes": [
@@ -23,7 +25,7 @@ pipeline {
         stage('Update Deployment and Service specification') {
             steps {
                 script {
-                    env.DT_CUSTOM_PROP = readFile("manifests/staging/dt_meta").trim() 
+                    env.DT_CUSTOM_PROP = readFile("manifests/staging/dt_meta").trim()
                     env.DT_CUSTOM_PROP = env.DT_CUSTOM_PROP + " " + generateDynamicMetaData()
                 }
                 container('git') {
