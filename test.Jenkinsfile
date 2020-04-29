@@ -1,4 +1,16 @@
-@Library('ace@master') _ 
+@Library('ace@master') _
+
+def tagMatchRules = [
+  [
+    "meTypes": [
+      ["meType": "SERVICE"]
+    ],
+    tags : [
+      ["context": "CONTEXTLESS", "key": "app", "value": "simplenodeservice"],
+      ["context": "CONTEXTLESS", "key": "environment", "value": "staging"]
+    ]
+  ]
+]
 
 pipeline {
     parameters {
@@ -8,15 +20,33 @@ pipeline {
         label 'kubegit'
     }
     stages {
+        stage('DT start event') {
+            steps {
+                container("curl") {
+                    script {
+                        def status = pushDynatraceInfoEvent (
+                            tagRule : tagMatchRules,
+                            source: "Jmeter",
+                            description: "Performance Test started for ${env.APP_NAME}",
+                            title: "Jmeter Start",
+                            customProperties : [
+                                [key: 'VU Count', value: "1"],
+                                [key: 'loopCount', value: "10"]
+                            ]
+                        )
+                    }
+                }
+            }
+        }
         stage('Run performance test') {
             steps {
                 checkout scm
                 container('jmeter') {
                     script {
-                    def status = executeJMeter ( 
+                    def status = executeJMeter (
                         scriptName: "jmeter/simplenodeservice_load.jmx",
                         resultsDir: "perfCheck_${env.APP_NAME}_staging_${BUILD_NUMBER}",
-                        serverUrl: "simplenodeservice.staging", 
+                        serverUrl: "simplenodeservice.staging",
                         serverPort: 80,
                         checkPath: '/health',
                         vuCount: 1,
@@ -33,7 +63,24 @@ pipeline {
                 }
             }
         }
-
+        stage('DT stop event') {
+            steps {
+                container("curl") {
+                    script {
+                        def status = pushDynatraceInfoEvent (
+                            tagRule : tagMatchRules,
+                            source: "Jmeter",
+                            description: "Performance Test Stopped for ${env.APP_NAME}",
+                            title: "Jmeter Start",
+                            customProperties : [
+                                [key: 'VU Count', value: "1"],
+                                [key: 'loopCount', value: "10"]
+                            ]
+                        )
+                    }
+                }
+            }
+        }
         stage('Manual approval') {
             // no agent, so executors are not used up when waiting for approvals
             agent none
@@ -70,6 +117,6 @@ pipeline {
                     string(name: 'APP_NAME', value: "${env.APP_NAME}")
                 ]
             }
-        }  
+        }
     }
 }
