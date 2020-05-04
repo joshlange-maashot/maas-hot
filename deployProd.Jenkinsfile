@@ -9,7 +9,7 @@ pipeline {
         stage('Update production versions with latest versions from staging') {
             steps {
                 script {
-                    env.DT_CUSTOM_PROP = readFile "manifests/production/dt_meta" 
+                    env.DT_CUSTOM_PROP = readFile "manifests/production/dt_meta"
                     env.DT_CUSTOM_PROP = env.DT_CUSTOM_PROP + " " + generateMetaData()
                 }
                 container('kubectl') {
@@ -18,6 +18,21 @@ pipeline {
                     sh "sed -i \"s#nodePort: .*#nodePort: 31600#\" manifests/production/${env.APP_NAME}.yml"
                     sh "cat manifests/production/${env.APP_NAME}.yml"
                     sh "kubectl -n production apply -f manifests/production/${env.APP_NAME}.yml"
+                }
+            }
+        stage('DT send deploy event') {
+            steps {
+                container("curl") {
+                    script {
+                        def status = pushDynatraceDeploymentEvent (
+                            tagRule : tagMatchRules,
+                            deploymentVersion: "${env.BUILD}",
+                            customProperties : [
+                                [key: 'Jenkins Build Number', value: "${env.BUILD_ID}"],
+                                [key: 'Git commit', value: "${env.GIT_COMMIT}"]
+                            ]
+                        )
+                    }
                 }
             }
         }
