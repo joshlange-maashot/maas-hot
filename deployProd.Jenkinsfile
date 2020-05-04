@@ -20,6 +20,7 @@ pipeline {
                     sh "kubectl -n production apply -f manifests/production/${env.APP_NAME}.yml"
                 }
             }
+        }
         stage('DT send deploy event') {
             steps {
                 container("curl") {
