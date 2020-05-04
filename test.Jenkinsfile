@@ -31,7 +31,7 @@ pipeline {
                             title: "Jmeter Start",
                             customProperties : [
                                 [key: 'VU Count', value: "1"],
-                                [key: 'loopCount', value: "10"]
+                                [key: 'loopCount', value: "15"]
                             ]
                         )
                     }
